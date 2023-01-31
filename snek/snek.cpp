@@ -6,22 +6,28 @@
 
 #include <sdl.h>
 
-enum {
+enum Texture{
 	HEAD, BODY, TAIL, TURN, BACK, FOOD_TEXTURE
 };
 
-enum {
+enum TileType{
 	SNEK, EMPTY, FOOD
 };
 
-enum {
+enum Direction{
 	UP, RIGHT, DOWN, LEFT, NONE
 };
 
-struct Snek {
+struct Snek{
 	int x;
 	int y;
 	Snek* next;
+};
+
+struct Tile{
+	TileType type;
+	Direction in;
+	Direction out;
 };
 
 SDL_Texture** textures;
@@ -29,11 +35,11 @@ SDL_Texture** textures;
 Snek* front;
 SDL_Window* window;
 SDL_Renderer* renderer;
-char** world;
-char** worlddirin;
-char** worlddirout;
-char dir = UP;
-std::queue<char> inputQueue;
+
+Tile** world;
+
+Direction dir = UP;
+std::queue<Direction> inputQueue;
 
 const int FIELD = 32;
 const int WIDTH = 20;
@@ -54,11 +60,13 @@ void init() {
 	textures[TURN] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("textures/turn.bmp"));
 	textures[TAIL] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("textures/tail.bmp"));
 
-	world = new char* [WIDTH];
+	world = new Tile* [WIDTH];
 	for (int i = 0; i < WIDTH; i++) {
-		world[i] = new char[HEIGHT];
+		world[i] = new Tile[HEIGHT];
 		for (int j = 0; j < HEIGHT; j++) {
-			world[i][j] = EMPTY;
+			world[i][j].type = EMPTY;
+			world[i][j].in = NONE;
+			world[i][j].out = NONE;
 		}
 	}
 	front = new Snek;
@@ -72,33 +80,22 @@ void init() {
 	front->next->next->y = front->y;
 	front->next->next->next = nullptr;
 
-	world[front->x][front->y] =
-		world[front->next->x][front->next->y] =
-		world[front->next->next->x][front->next->next->y] = SNEK;
+	world[front->x][front->y].type = SNEK;
+	world[front->next->x][front->next->y].type = SNEK;
+	world[front->next->next->x][front->next->next->y].type = SNEK;
 
-	worlddirin = new char* [WIDTH];
-	worlddirout = new char* [WIDTH];
-	for (int i = 0; i < WIDTH; i++) {
-		worlddirin[i] = new char[HEIGHT];
-		worlddirout[i] = new char[HEIGHT];
-		for (int j = 0; j < HEIGHT; j++) {
-			worlddirin[i][j] = worlddirout[i][j] = NONE;
-		}
-	}
-
-
-	worlddirin[front->x][front->y] =
-		worlddirin[front->next->x][front->next->y] = RIGHT;
-	worlddirout[front->next->next->x][front->next->next->y] =
-		worlddirout[front->next->x][front->next->y] = RIGHT;
+	world[front->x][front->y].in = RIGHT;
+	world[front->next->x][front->next->y].in = RIGHT;
+	world[front->next->next->x][front->next->next->y].out = RIGHT;
+	world[front->next->x][front->next->y].out = RIGHT;
 
 	int nx, ny;
 	for (int i = 0; i < FOOD_COUNT; i++) {
 		do {
 			nx = rand() % WIDTH;
 			ny = rand() % HEIGHT;
-		} while (world[nx][ny] != EMPTY);
-		world[nx][ny] = FOOD;
+		} while (world[nx][ny].type != EMPTY);
+		world[nx][ny].type = FOOD;
 	}
 
 	srand(time(0));
@@ -109,6 +106,9 @@ void close() {
 		SDL_DestroyTexture(textures[i]);
 	}
 	delete[] textures;
+	for (int i = 0; i < WIDTH; i++) {
+		delete[] world[i];
+	}
 	for (int i = 0; i < WIDTH; i++) {
 		delete[] world[i];
 	}
@@ -162,10 +162,10 @@ int main(int argc, char** argv) {
 			int prevtailx = nexttail->next->x;
 			int prevtaily = nexttail->next->y;
 			nexttail->next->next = front;
-			world[nexttail->next->x][nexttail->next->y] = EMPTY;
-			worlddirout[nexttail->next->x][nexttail->next->y] = NONE;
-			char prevdir = worlddirin[nexttail->x][nexttail->y];
-			worlddirin[nexttail->x][nexttail->y] = NONE;
+			world[nexttail->next->x][nexttail->next->y].type = EMPTY;
+			world[nexttail->next->x][nexttail->next->y].out = NONE;
+			Direction prevdir = world[nexttail->x][nexttail->y].in;
+			world[nexttail->x][nexttail->y].in = NONE;
 			nexttail->next->x = front->x;
 			nexttail->next->y = front->y;
 			front = nexttail->next;
@@ -200,28 +200,29 @@ int main(int argc, char** argv) {
 					front->x = 0;
 				break;
 			}
-			worlddirin[front->x][front->y] = dir;
-			worlddirout[front->next->x][front->next->y] = dir;
+			world[front->x][front->y].in = dir;
+			world[front->next->x][front->next->y].out = dir;
 
-			if (world[front->x][front->y] == FOOD) {
+			if (world[front->x][front->y].type == FOOD) {
 				nexttail->next = new Snek;
 				nexttail->next->x = prevtailx;
 				nexttail->next->y = prevtaily;
 				nexttail->next->next = nullptr;
-				world[nexttail->next->x][nexttail->next->y] = SNEK;
-				worlddirin[nexttail->x][nexttail->y] = worlddirout[nexttail->next->x][nexttail->next->y] = prevdir;
+				world[nexttail->next->x][nexttail->next->y].type = SNEK;
+				world[nexttail->x][nexttail->y].in = prevdir;
+				world[nexttail->next->x][nexttail->next->y].out = prevdir;
 
 
 				int nx, ny;
 				do {
 					nx = rand() % WIDTH;
 					ny = rand() % HEIGHT;
-				} while (world[nx][ny] != EMPTY);
-				world[nx][ny] = FOOD;
+				} while (world[nx][ny].type != EMPTY);
+				world[nx][ny].type = FOOD;
 			}
 
-			running = world[front->x][front->y] != SNEK;
-			world[front->x][front->y] = SNEK;
+			running = world[front->x][front->y].type != SNEK;
+			world[front->x][front->y].type = SNEK;
 		}
 
 
@@ -229,13 +230,13 @@ int main(int argc, char** argv) {
 			for (int j = 0; j < HEIGHT; j++) {
 				a.x = i * FIELD;
 				a.y = j * FIELD;
-				switch (world[i][j]) {
+				switch (world[i][j].type) {
 				case EMPTY:
 					SDL_RenderCopy(renderer, textures[BACK], nullptr, &a);
 					break;
 				case SNEK:
-					if (worlddirout[i][j] == NONE)
-						switch (worlddirin[i][j]) {
+					if (world[i][j].out == NONE)
+						switch (world[i][j].in) {
 						case RIGHT:
 							SDL_RenderCopy(renderer, textures[HEAD], nullptr, &a);
 							break;
@@ -250,27 +251,27 @@ int main(int argc, char** argv) {
 							break;
 						}
 
-					if ((worlddirout[i][j] == UP && worlddirin[i][j] == UP) || (worlddirout[i][j] == DOWN && worlddirin[i][j] == DOWN)) {
+					if ((world[i][j].out == UP && world[i][j].in == UP) || (world[i][j].out == DOWN && world[i][j].in == DOWN)) {
 						SDL_RenderCopyEx(renderer, textures[BODY], nullptr, &a, 90, nullptr, SDL_FLIP_NONE);
 					}
-					if ((worlddirout[i][j] == LEFT && worlddirin[i][j] == LEFT) || (worlddirout[i][j] == RIGHT && worlddirin[i][j] == RIGHT))
+					if ((world[i][j].out == LEFT && world[i][j].in == LEFT) || (world[i][j].out == RIGHT && world[i][j].out == RIGHT))
 						SDL_RenderCopy(renderer, textures[BODY], nullptr, &a);
 
 
 
-					if ((worlddirin[i][j] == UP && worlddirout[i][j] == RIGHT) || (worlddirin[i][j] == LEFT && worlddirout[i][j] == DOWN))
+					if ((world[i][j].in == UP && world[i][j].out == RIGHT) || (world[i][j].in == LEFT && world[i][j].out == DOWN))
 						SDL_RenderCopy(renderer, textures[TURN], nullptr, &a);
-					if ((worlddirin[i][j] == DOWN && worlddirout[i][j] == RIGHT) || (worlddirin[i][j] == LEFT && worlddirout[i][j] == UP))
+					if ((world[i][j].in == DOWN && world[i][j].out == RIGHT) || (world[i][j].in == LEFT && world[i][j].out == UP))
 						SDL_RenderCopyEx(renderer, textures[TURN], nullptr, &a, 0, nullptr, SDL_FLIP_VERTICAL);
-					if ((worlddirin[i][j] == UP && worlddirout[i][j] == LEFT) || (worlddirin[i][j] == RIGHT && worlddirout[i][j] == DOWN))
+					if ((world[i][j].in == UP && world[i][j].out == LEFT) || (world[i][j].in == RIGHT && world[i][j].out == DOWN))
 						SDL_RenderCopyEx(renderer, textures[TURN], nullptr, &a, 0, nullptr, SDL_FLIP_HORIZONTAL);
-					if ((worlddirin[i][j] == RIGHT && worlddirout[i][j] == UP) || (worlddirin[i][j] == DOWN && worlddirout[i][j] == LEFT)) {
+					if ((world[i][j].in == RIGHT && world[i][j].out == UP) || (world[i][j].in == DOWN && world[i][j].out == LEFT)) {
 						SDL_RenderCopyEx(renderer, textures[TURN], nullptr, &a, 180, nullptr, SDL_FLIP_NONE);
 					}
 
 
-					if (worlddirin[i][j] == NONE)
-						switch (worlddirout[i][j]) {
+					if (world[i][j].in == NONE)
+						switch (world[i][j].out) {
 						case RIGHT:
 							SDL_RenderCopy(renderer, textures[TAIL], nullptr, &a);
 							break;
