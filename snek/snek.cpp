@@ -18,15 +18,15 @@ enum {
 	UP, RIGHT, DOWN, LEFT, NONE
 };
 
-struct snek {
+struct Snek {
 	int x;
 	int y;
-	snek* next;
+	Snek* next;
 };
 
 SDL_Texture** textures;
 
-snek* front;
+Snek* front;
 SDL_Window* window;
 SDL_Renderer* renderer;
 char** world;
@@ -61,13 +61,13 @@ void init() {
 			world[i][j] = EMPTY;
 		}
 	}
-	front = new snek;
+	front = new Snek;
 	front->x = WIDTH / 2;
 	front->y = HEIGHT / 2;
-	front->next = new snek;
+	front->next = new Snek;
 	front->next->x = front->x - 1;
 	front->next->y = front->y;
-	front->next->next = new snek;
+	front->next->next = new Snek;
 	front->next->next->x = front->x - 2;
 	front->next->next->y = front->y;
 	front->next->next->next = nullptr;
@@ -108,6 +108,11 @@ void close() {
 	for (int i = 0; i < 6; i++) {
 		SDL_DestroyTexture(textures[i]);
 	}
+	delete[] textures;
+	for (int i = 0; i < WIDTH; i++) {
+		delete[] world[i];
+	}
+	delete[] world;
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
@@ -149,7 +154,7 @@ int main(int argc, char** argv) {
 
 		count--;
 		if (!count) {
-			snek* nexttail = front;
+			Snek* nexttail = front;
 			do {
 				nexttail = nexttail->next;
 			} while (nexttail->next->next);
@@ -199,7 +204,7 @@ int main(int argc, char** argv) {
 			worlddirout[front->next->x][front->next->y] = dir;
 
 			if (world[front->x][front->y] == FOOD) {
-				nexttail->next = new snek;
+				nexttail->next = new Snek;
 				nexttail->next->x = prevtailx;
 				nexttail->next->y = prevtaily;
 				nexttail->next->next = nullptr;
