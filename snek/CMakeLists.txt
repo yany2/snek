@@ -1,4 +1,4 @@
-﻿if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
+﻿if("${CMAKE_BUILD_TYPE}" STREQUAL Debug)
 	add_executable(snek snek.cpp)
 else()
 	add_executable(snek WIN32 snek.cpp)
