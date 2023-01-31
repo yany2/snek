@@ -4,7 +4,7 @@
 #include <chrono>
 #include <queue>
 
-#include <sdl.h>
+#include <SDL.h>
 
 enum Texture {
 	HEAD, BODY, TAIL, TURN, BACK, FOOD_TEXTURE
