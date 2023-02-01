@@ -213,73 +213,95 @@ void gameTick() {
 
 void renderTile(int i, int j) {
 	SDL_Rect renderTarget = { i * FIELD, j * FIELD, FIELD, FIELD };
+	SDL_Texture* texture = nullptr;
+	double angle = 0;
+	SDL_RendererFlip flip = SDL_FLIP_NONE;
 	switch (world[i][j].type) {
 	case EMPTY:
-		SDL_RenderCopy(renderer, textures[BACK], nullptr, &renderTarget);
+		texture = textures[BACK];
 		break;
 	case SNEK:
 		if (world[i][j].out == NONE) {
+			texture = textures[HEAD];
 			switch (world[i][j].in) {
-			case RIGHT:
-				SDL_RenderCopy(renderer, textures[HEAD], nullptr, &renderTarget);
-				break;
 			case LEFT:
-				SDL_RenderCopyEx(renderer, textures[HEAD], nullptr, &renderTarget, 0, nullptr, SDL_FLIP_HORIZONTAL);
+				flip = SDL_FLIP_HORIZONTAL;
 				break;
 			case UP:
-				SDL_RenderCopyEx(renderer, textures[HEAD], nullptr, &renderTarget, 270, nullptr, SDL_FLIP_NONE);
+				angle = 270;
 				break;
 			case DOWN:
-				SDL_RenderCopyEx(renderer, textures[HEAD], nullptr, &renderTarget, 90, nullptr, SDL_FLIP_NONE);
+				angle = 90;
 				break;
 			}
 		}
 
-		if ((world[i][j].out == UP && world[i][j].in == UP) || (world[i][j].out == DOWN && world[i][j].in == DOWN)) {
-			SDL_RenderCopyEx(renderer, textures[BODY], nullptr, &renderTarget, 90, nullptr, SDL_FLIP_NONE);
+		if (
+			(world[i][j].out == UP && world[i][j].in == UP) ||
+			(world[i][j].out == DOWN && world[i][j].in == DOWN)
+		) {
+			texture = textures[BODY];
+			angle = 90;
 		}
-		if ((world[i][j].out == LEFT && world[i][j].in == LEFT) || (world[i][j].out == RIGHT && world[i][j].in == RIGHT)) {
-			SDL_RenderCopy(renderer, textures[BODY], nullptr, &renderTarget);
+		if (
+			(world[i][j].out == LEFT && world[i][j].in == LEFT) ||
+			(world[i][j].out == RIGHT && world[i][j].in == RIGHT)
+		) {
+			texture = textures[BODY];
 		}
 
 
 
-		if ((world[i][j].in == UP && world[i][j].out == RIGHT) || (world[i][j].in == LEFT && world[i][j].out == DOWN)) {
-			SDL_RenderCopy(renderer, textures[TURN], nullptr, &renderTarget);
+		if (
+			(world[i][j].in == UP && world[i][j].out == RIGHT) ||
+			(world[i][j].in == LEFT && world[i][j].out == DOWN)
+		) {
+			texture = textures[TURN];
 		}
-		if ((world[i][j].in == DOWN && world[i][j].out == RIGHT) || (world[i][j].in == LEFT && world[i][j].out == UP)) {
-			SDL_RenderCopyEx(renderer, textures[TURN], nullptr, &renderTarget, 0, nullptr, SDL_FLIP_VERTICAL);
+		if (
+			(world[i][j].in == DOWN && world[i][j].out == RIGHT) ||
+			(world[i][j].in == LEFT && world[i][j].out == UP)
+		) {
+			texture = textures[TURN];
+			flip = SDL_FLIP_VERTICAL;
 		}
-		if ((world[i][j].in == UP && world[i][j].out == LEFT) || (world[i][j].in == RIGHT && world[i][j].out == DOWN)) {
-			SDL_RenderCopyEx(renderer, textures[TURN], nullptr, &renderTarget, 0, nullptr, SDL_FLIP_HORIZONTAL);
+		if ((world[i][j].in == UP && world[i][j].out == LEFT) ||
+			(world[i][j].in == RIGHT && world[i][j].out == DOWN)
+		) {
+			texture = textures[TURN];
+			flip = SDL_FLIP_HORIZONTAL;
 		}
-		if ((world[i][j].in == RIGHT && world[i][j].out == UP) || (world[i][j].in == DOWN && world[i][j].out == LEFT)) {
-			SDL_RenderCopyEx(renderer, textures[TURN], nullptr, &renderTarget, 180, nullptr, SDL_FLIP_NONE);
+		if ((world[i][j].in == RIGHT && world[i][j].out == UP) ||
+			(world[i][j].in == DOWN && world[i][j].out == LEFT)
+		) {
+			texture = textures[TURN];
+			angle = 180;
 		}
 
 
 		if (world[i][j].in == NONE) {
+			texture = textures[TAIL];
 			switch (world[i][j].out) {
 			case RIGHT:
-				SDL_RenderCopy(renderer, textures[TAIL], nullptr, &renderTarget);
 				break;
 			case LEFT:
-				SDL_RenderCopyEx(renderer, textures[TAIL], nullptr, &renderTarget, 0, nullptr, SDL_FLIP_HORIZONTAL);
+				flip = SDL_FLIP_HORIZONTAL;
 				break;
 			case UP:
-				SDL_RenderCopyEx(renderer, textures[TAIL], nullptr, &renderTarget, 270, nullptr, SDL_FLIP_NONE);
+				angle = 270;
 				break;
 			case DOWN:
-				SDL_RenderCopyEx(renderer, textures[TAIL], nullptr, &renderTarget, 90, nullptr, SDL_FLIP_NONE);
+				angle = 90;
 				break;
 			}
 		}
 
 		break;
 	case FOOD:
-		SDL_RenderCopy(renderer, textures[FOOD_TEXTURE], nullptr, &renderTarget);
+		texture = textures[FOOD_TEXTURE];
 		break;
 	}
+	SDL_RenderCopyEx(renderer, texture, nullptr, &renderTarget, angle, nullptr, flip);
 }
 
 int main(int argc, char** argv) {
